@@ -1,0 +1,117 @@
+#!/usr/bin/bash
+
+#PBS -l walltime=00:02:00
+#PBS -l nodes=2:ppn=2
+#PBS -N Spivak_lab2
+
+#PBS -o Spivak.o.${PBS_JOBID}_lab2
+#PBS -e Spivak.e.${PBS_JOBID}_lab2
+#PBS -W stageout=/mnt/work/tb108/input*.txt@plus7.cluster.univ.kiev.ua:/home/grid/testbed/tb108/spivak/Lab2/input*
+cd $PBS_O_WORKDIR
+
+i=1
+count=1
+while [ $i -le 100 ]
+do
+    touch $PBS_O_WORKDIR/input${i}.txt
+    ((i++))
+done
+
+i=1
+while [ $i -le 100 ]
+do
+    ml icc
+    ml openmpi
+    mpirun hello > input${i}.txt
+    ((i++))
+done
+
+first_str=""
+second_str=""
+total_first=0
+total_second=0
+
+while [ $count -le 100 ]
+do
+    touch $PBS_O_WORKDIR/tmp${count}.txt
+    awk ' {split($5,str,"."); print str[1], $7} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | cut -f2 -d ' ' > $PBS_O_WORKDIR/tmp${count}.txt
+    
+    i=0
+    while read line
+    do
+        arr[$i]="$line"
+        i=$((i+1))
+    done < $PBS_O_WORKDIR/tmp${count}.txt
+
+    first_num=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $1}' | head -n 1)
+    first_str=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $2}' | head -n 1)
+    second_str=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $2}' | tail -n 1)
+    
+    sum1=0
+    sum2=0
+    i=0
+    
+    for el in "${arr[@]}"; do
+        if [ $i -lt $first_num ]; then
+            sum1=$(expr $sum1 + $el)
+        else
+            sum2=$(expr $sum2 + $el)
+        fi
+        i=$((i+1))
+    done
+    
+    total_first=$(expr $total_first + $sum1)
+    total_second=$(expr $total_second + $sum2)
+    
+    ((count++))
+done
+
+touch $PBS_O_WORKDIR/final_result.txt
+echo "Total Results: " >> $PBS_O_WORKDIR/final_result.txt
+echo "Node: $first_str | Number of processes per node: $total_first" >> $PBS_O_WORKDIR/final_result.txt
+echo "Node: $second_str | Number of processes per node: $total_second" >> $PBS_O_WORKDIR/final_result.txt
+
+first_str=""
+second_str=""
+total_first=0
+total_second=0
+
+while [ $count -le 100 ]
+do
+    touch $PBS_O_WORKDIR/tmp${count}.txt
+    awk ' {split($5,str,"."); print str[1], $7} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | cut -f2 -d ' ' > $PBS_O_WORKDIR/tmp${count}.txt
+    
+    i=0
+    while read line
+    do
+        arr[$i]="$line"
+        i=$((i+1))
+    done < $PBS_O_WORKDIR/tmp${count}.txt
+
+    first_num=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $1}' | head -n 1)
+    first_str=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $2}' | head -n 1)
+    second_str=$(awk ' {split($5,str,"."); print str[1]} ' $PBS_O_WORKDIR/inputs${count}.txt | sort | uniq -c | awk '{print $2}' | tail -n 1)
+    
+    sum1=0
+    sum2=0
+    i=0
+    
+    for el in "${arr[@]}"; do
+        if [ $i -lt $first_num ]; then
+            sum1=$(expr $sum1 + $el)
+        else
+            sum2=$(expr $sum2 + $el)
+        fi
+        i=$((i+1))
+    done
+    
+    total_first=$(expr $total_first + $sum1)
+    total_second=$(expr $total_second + $sum2)
+    
+    ((count++))
+done
+
+touch $PBS_O_WORKDIR/final_result.txt
+echo "Total Results: " >> $PBS_O_WORKDIR/final_result.txt
+echo "Node: $first_str | Number of processes per node: $total_first" >> $PBS_O_WORKDIR/final_result.txt
+echo "Node: $second_str | Number of processes per node: $total_second" >> $PBS_O_WORKDIR/final_result.txt
